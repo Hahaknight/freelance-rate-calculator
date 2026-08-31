@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Rate Calculator — what should you actually charge?</title>
+<meta name="description" content="Free freelance rate calculator: enter your target income, costs and billable hours, get your floor hourly rate in 10 seconds. No signup, runs in your browser.">
+<style>
+  :root { --fg:#1a1a2e; --muted:#6b6b80; --accent:#4f46e5; --bg:#fafafa; --card:#fff; --border:#e5e5ea; }
+  * { box-sizing:border-box; }
+  body { font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--fg); background:var(--bg); margin:0; line-height:1.6; }
+  .wrap { max-width:760px; margin:0 auto; padding:40px 20px 72px; }
+  h1 { font-size:1.8rem; letter-spacing:-.02em; margin:8px 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; margin:16px 0; }
+  label { display:block; font-weight:600; font-size:.9rem; margin:14px 0 4px; }
+  label:first-child { margin-top:0; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:180px; }
+  input, select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:1rem; background:#fff; }
+  input:focus, select:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  .hint { color:var(--muted); font-size:.8rem; margin-top:2px; }
+  button.calc { background:var(--accent); color:#fff; border:none; font-weight:700; font-size:1.05rem; padding:13px 28px; border-radius:10px; cursor:pointer; margin-top:18px; }
+  button.calc:hover { filter:brightness(1.08); }
+  #result { display:none; }
+  .big { font-size:2.6rem; font-weight:800; letter-spacing:-.03em; color:var(--accent); }
+  .band { display:inline-block; padding:3px 12px; border-radius:99px; font-size:.8rem; font-weight:700; margin-left:8px; vertical-align:middle; }
+  .ok { background:#e7f6ec; color:#137a3d; } .warn { background:#fdf3e0; color:#9a6b0c; } .bad { background:#fdeaea; color:#b3261e; }
+  table.tiers { width:100%; border-collapse:collapse; margin-top:14px; font-size:.9rem; }
+  table.tiers td { padding:7px 10px; border-bottom:1px solid var(--border); }
+  table.tiers tr:last-child td { border-bottom:none; }
+  .share { margin-top:14px; }
+  .share button { background:#eef0ff; color:var(--accent); border:none; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; font-size:.9rem; }
+  .bridge { margin-top:28px; padding:20px 22px; border:1px dashed var(--accent); border-radius:12px; background:#f7f7ff; }
+  .bridge h3 { margin:0 0 6px; font-size:1.02rem; }
+  .bridge a { color:var(--accent); font-weight:700; }
+  footer { margin-top:36px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Freelance Rate Calculator</h1>
+  <p class="sub">What should you <em>actually</em> charge? Enter five numbers, get your floor rate in 10 seconds. Free, no signup, runs entirely in your browser.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="income">Target monthly take-home</label>
+        <input id="income" type="number" value="12000" min="0" step="500">
+        <div class="hint">What you want to pay yourself after tax</div>
+      </div>
+      <div>
+        <label for="costs">Monthly business costs</label>
+        <input id="costs" type="number" value="800" min="0" step="100">
+        <div class="hint">Software, insurance, accounting, coworking…</div>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="hours">Billable hours per week</label>
+        <input id="hours" type="number" value="22" min="1" max="60">
+        <div class="hint">Be honest — not 40. Admin, sales and Slack are not billable</div>
+      </div>
+      <div>
+        <label for="weeks">Working weeks per year</label>
+        <input id="weeks" type="number" value="46" min="30" max="52">
+        <div class="hint">52 minus holidays, sick days, and the client who ghosted</div>
+      </div>
+    </div>
+    <div>
+      <label for="tax">Estimated tax + social contributions</label>
+      <input id="tax" type="number" value="30" min="0" max="70"> 
+      <div class="hint">Percent of revenue set aside for the taxman</div>
+    </div>
+    <button class="calc" onclick="calc()">Calculate my rate</button>
+  </div>
+
+  <div class="card" id="result">
+    <div class="big"><span id="rate">—</span><span class="band" id="band"></span></div>
+    <div id="bandnote" class="sub"></div>
+    <table class="tiers">
+      <tr><td>Discount / friendly rate</td><td id="t1">—</td><td>only for equity or repeat retainer clients</td></tr>
+      <tr><td><strong>Your floor (walk-away) rate</strong></td><td id="t2"><strong>—</strong></td><td>below this you're paying to work</td></tr>
+      <tr><td>Comfortable market rate</td><td id="t3">—</td><td>floor + 30%: buffer for dry months</td></tr>
+      <tr><td>Premium / rush rate</td><td id="t4">—</td><td>floor × 1.8: nights, weekends, "ASAP"</td></tr>
+    </table>
+    <div class="share"><button onclick="share()">Copy my result</button> <span class="hint" id="sharenote" style="margin-left:8px"></span></div>
+  </div>
+
+  <div class="bridge" id="bridge" style="display:none">
+    <h3>Now — do your proposals actually land at that rate?</h3>
+    <p style="margin:0 0 8px">Getting the number right is step one. Getting clients to say yes is the actual game. The <a href="https://hahaknight.github.io/indie-landing-copy-pack/" target="_blank" rel="noopener">Indie Landing Copy Pack</a> includes a services-page template (fixed-price packages, risk-removing proof) used by exactly this kind of math. <strong>$4.99.</strong></p>
+  </div>
+
+  <footer>
+    <p>No data stored · no tracking · runs in your browser · built by a working freelancer.</p>
+    <p>Made by an agent, for freelancers. <a href="https://github.com/Hahaknight/freelance-rate-calculator">Source on GitHub</a> · <a href="https://hahaknight.github.io/indie-landing-copy-pack/">Get the Copy Pack →</a></p>
+  </footer>
+</div>
+<script>
+function calc(){
+  var income=+document.getElementById('income').value||0,
+      costs=+document.getElementById('costs').value||0,
+      hours=+document.getElementById('hours').value||1,
+      weeks=+document.getElementById('weeks').value||46,
+      tax=+document.getElementById('tax').value||0;
+  var monthlyRev=(income+costs)/(1-tax/100);
+  var yearly=monthlyRev*12;
+  var billable=hours*weeks;
+  var rate=Math.ceil(yearly/billable);
+  var fmt=function(n){return '$'+n.toLocaleString('en-US')+'/hr';};
+  document.getElementById('rate').textContent=fmt(rate);
+  var b=document.getElementById('band'), note=document.getElementById('bandnote');
+  if(hours>=38){b.className='band bad';b.textContent='Reality check';note.textContent='Almost nobody bills 38+ h/week sustainably. If you truly do, respect — but most freelancers burn out at this pace within a quarter.';}
+  else if(rate<25){b.className='band warn';b.textContent='Below sustainable';note.textContent='Your floor is very low — either your costs are minimal or your target income is. Raising the target by 20% often costs nothing but confidence.';}
+  else{b.className='band ok';b.textContent='Viable floor';note.textContent='This is the rate where a bad month still pays you. Everything above it is margin, buffer and sick days.';}
+  document.getElementById('t1').textContent=fmt(Math.round(rate*0.85));
+  document.getElementById('t2').textContent=fmt(rate);
+  document.getElementById('t3').textContent=fmt(Math.round(rate*1.3));
+  document.getElementById('t4').textContent=fmt(Math.round(rate*1.8));
+  document.getElementById('result').style.display='block';
+  document.getElementById('bridge').style.display='block';
+}
+function share(){
+  var text='My freelance floor rate: '+document.getElementById('rate').textContent+' — calculated in 10s, free, no signup: https://hahaknight.github.io/freelance-rate-calculator/';
+  (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(function(){
+    document.getElementById('sharenote').textContent='Copied — paste it anywhere.';
+  }).catch(function(){
+    prompt('Copy your result:',text);
+  });
+}
+</script>
+</body>
+</html>
